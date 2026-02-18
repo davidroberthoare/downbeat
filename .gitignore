@@ -1,0 +1,6 @@
+# Temporary files
+*.sh
+*.txt
+
+# Development
+.DS_Store

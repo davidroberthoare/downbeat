@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <title>Downbeat</title>
+
+  <link rel="icon" type="image/png" href="/img/favicon-96x96.png" sizes="96x96" />
+<link rel="icon" type="image/svg+xml" href="/img/favicon.svg" />
+<link rel="shortcut icon" href="/img/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-title" content="Downbeat" />
+  
+  <!-- Framework7 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7@8/framework7-bundle.min.css">
+  
+  <!-- Framework7 Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7-icons@5/css/framework7-icons.css">
+  
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <style>
+    /* Minimal custom styles for beat indicator and playback display */
+    .beat-indicator {
+      width: 100%;
+      height: 50vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    .beat-indicator.flash {
+      background: var(--f7-theme-color);
+      opacity: 1;
+      box-shadow: 0 0 40px var(--f7-theme-color);
+    }
+    .beat-indicator .bpm-number {
+      font-size: 15vh;
+      font-weight: bold;
+      line-height: 1;
+    }
+    #playbackSongTitle {
+      font-size: 50px;
+      font-weight: 600;
+      text-align: center;
+      padding: 0 20px;
+      line-height: 1.2;
+      width: 90vw; /* Fixed width in viewport units */
+      max-width: 800px;
+      height: 120px; /* Fixed height for 2 lines at max font size */
+      overflow: hidden;
+      box-sizing: border-box;
+      margin: 0 auto;
+    }
+    .tempo-controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      padding: 20px;
+    }
+    .playback-controls-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 20px;
+      gap: 20px;
+    }
+    .playback-controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    .playback-controls .button {
+      height: 80px;
+      font-size: 40px;
+    }
+    .tempo-controls .button {
+      height: 80px;
+      font-size: 40px;
+    }
+    .playback-content-scrollable {
+      height: calc(100vh - var(--f7-toolbar-height));
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #upcomingSongTitle {
+      font-size: 18px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    div#upcomingSongTitle::before {
+        content: "... ";
+    }
+    #songsListUl .item-subtitle {
+      overflow: visible;
+    }
+
+  </style>
+</head>
+<body class="dark">
+  <div id="app">
+    <!-- Main View -->
+    <div class="view view-main">
+      <!-- Main page -->
+      <div class="page" data-name="home">
+        <!-- Navbar -->
+        <div class="navbar">
+          <div class="navbar-bg"></div>
+          <div class="navbar-inner">
+            <div class="left" id="backToShowsBtn" style="display: none;">
+              <a href="#" class="link">
+                <i class="f7-icons">chevron_left</i>
+                <span>Shows</span>
+              </a>
+            </div>
+            <div class="title" id="mainTitle">Downbeat ~ Conductor Metronome</div>
+            <div class="right">
+              <a href="#" class="link icon-only" id="editShowBtn" style="display: none;">
+                <i class="f7-icons">pencil_circle_fill</i>
+              </a>
+              <a href="#" class="link icon-only" id="addItemBtn">
+                <i class="f7-icons">plus_circle_fill</i>
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Page content -->
+        <div class="page-content">
+          <!-- Shows List -->
+          <div id="showsListContainer">
+            <div class="list" id="showsList" style="display: none;">
+              <ul id="showsListUl"></ul>
+            </div>
+            <div class="block block-strong inset" id="showsEmptyState">
+              <p style="text-align: center; opacity: 0.6;">No shows yet. Tap the + button to create a show.</p>
+            </div>
+          </div>
+          
+          <!-- Songs List (for selected show) -->
+          <div id="songsListContainer" style="display: none;">
+            <div class="block">
+              <button class="button button-large button-fill" id="startPlaybackBtn">
+                <i class="f7-icons">play_circle_fill</i>
+                <span style="margin-left: 8px;">Start Playback</span>
+              </button>
+            </div>
+            
+            <div class="list sortable sortable-enabled" id="songsList" style="display: none;">
+              <ul id="songsListUl"></ul>
+            </div>
+            
+            <div class="block block-strong inset" id="songsEmptyState">
+              <p style="text-align: center; opacity: 0.6;">No songs yet. Tap the + button to add a song.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Playback View (Sheet Modal) -->
+    <div class="sheet-modal sheet-modal-push" id="playbackSheet" style="height: 100%;">
+      <div class="toolbar toolbar-top">
+        <div class="toolbar-inner">
+          <div class="left">
+            <a href="#" class="link sheet-close" id="backToEditBtn">
+              <i class="f7-icons">chevron_left</i>
+              <span>Back</span>
+            </a>
+          </div>
+          <!-- <div class="title" id="playbackSongName">Song Name</div> -->
+          <div class="right">
+            <a href="#" class="link icon-only" id="saveTempoBtn">
+              <i class="f7-icons">floppy_disk</i>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-modal-inner page-content playback-content-scrollable">
+        <!-- Beat Indicator with BPM and Song Title -->
+        <div class="beat-indicator" id="beatIndicator">
+          <div class="song-title" id="playbackSongTitle">Song Name</div>
+          <div class="bpm-number" id="bpmDisplay">120</div>
+        </div>
+        
+        <!-- Playback Controls (Lower half) -->
+        <div class="playback-controls-wrapper">
+          <!-- Tempo Controls -->
+          <div class="tempo-controls">
+            <button class="button button-large button-fill" id="tempoDownBtn">
+              <i class="f7-icons">minus_circle_fill</i>
+            </button>
+            <button class="button button-large button-fill" id="tempoUpBtn">
+              <i class="f7-icons">plus_circle_fill</i>
+            </button>
+          </div>
+          
+          <!-- Playback Controls -->
+          <div class="playback-controls">
+            <button class="button button-large button-fill" id="prevTrackBtn">
+              <i class="f7-icons">backward_end_fill</i>
+            </button>
+            <button class="button button-large button-fill" id="playPauseBtn" style="min-width: 120px;">
+              <i class="f7-icons" id="playPauseIcon">pause_circle_fill</i>
+            </button>
+            <button class="button button-large button-fill" id="nextTrackBtn">
+              <i class="f7-icons">forward_end_fill</i>
+            </button>
+          </div>
+          
+          <!-- Next Song Footer -->
+          <div style="text-align: right">
+            <div id="upcomingSongTitle">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Show Edit Popup -->
+    <div class="popup" id="showEditPopup">
+      <div class="view">
+        <div class="page">
+          <div class="navbar">
+            <div class="navbar-bg"></div>
+            <div class="navbar-inner">
+              <div class="left">
+                <a href="#" class="link popup-close">Cancel</a>
+              </div>
+              <div class="title" id="showPopupTitle">Add Show</div>
+              <div class="right">
+                <a href="#" class="link" id="saveShowBtn">Save</a>
+              </div>
+            </div>
+          </div>
+          
+          <div class="page-content">
+            <div class="list">
+              <ul>
+                <li class="item-content item-input">
+                  <div class="item-inner">
+                    <div class="item-title item-label">Show Name</div>
+                    <div class="item-input-wrap">
+                      <input type="text" id="showNameInput" placeholder="Enter show name">
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            
+            <div class="block" id="shareShowBlock" style="display: none;">
+              <button class="button button-large button-fill" id="shareShowBtn">
+                <i class="f7-icons">square_arrow_up</i>
+                <span style="margin-left: 8px;">Share Show</span>
+              </button>
+            </div>
+            
+            <div class="block" id="deleteShowBlock" style="display: none;">
+              <button class="button button-large button-fill color-red" id="deleteShowBtn">
+                Delete Show
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Song Edit Popup -->
+    <div class="popup" id="songEditPopup">
+      <div class="view">
+        <div class="page">
+          <div class="navbar">
+            <div class="navbar-bg"></div>
+            <div class="navbar-inner">
+              <div class="left">
+                <a href="#" class="link popup-close" id="cancelEditBtn">Cancel</a>
+              </div>
+              <div class="title" id="popupTitle">Add Song</div>
+              <div class="right">
+                <a href="#" class="link" id="saveSongBtn">Save</a>
+              </div>
+            </div>
+          </div>
+          
+          <div class="page-content">
+            <div class="list">
+              <ul>
+                <li class="item-content item-input">
+                  <div class="item-inner">
+                    <div class="item-title item-label">Song Name</div>
+                    <div class="item-input-wrap">
+                      <input type="text" id="songNameInput" placeholder="Enter song name">
+                    </div>
+                  </div>
+                </li>
+                
+                <li class="item-content item-input">
+                  <div class="item-inner">
+                    <div class="item-title item-label">BPM (Beats Per Minute)</div>
+                    <div class="item-input-wrap">
+                      <input type="number" id="bpmInput" placeholder="120" min="20" max="300">
+                    </div>
+                  </div>
+                </li>
+                
+
+              </ul>
+            </div>
+            
+            <div class="block" id="deleteSongBlock" style="display: none;">
+              <button class="button button-large button-fill color-red" id="deleteSongBtn">
+                Delete Song
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Share Popup -->
+    <div class="popup" id="sharePopup">
+      <div class="view">
+        <div class="page">
+          <div class="navbar">
+            <div class="navbar-bg"></div>
+            <div class="navbar-inner">
+              <div class="left">
+                <a href="#" class="link popup-close">Close</a>
+              </div>
+              <div class="title">Share Show</div>
+            </div>
+          </div>
+          
+          <div class="page-content">
+            <div class="block-title">Scan QR Code</div>
+            <div class="block block-strong inset" style="text-align: center;">
+              <div id="qrcodeContainer" style="display: inline-block;"></div>
+            </div>
+            
+            <div class="block-title">Or Copy Link</div>
+            <div class="list">
+              <ul>
+                <li class="item-content item-input">
+                  <div class="item-inner">
+                    <div class="item-input-wrap">
+                      <input type="text" id="shareLinkInput" readonly style="font-size: 12px;">
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            
+            <div class="block">
+              <button class="button button-large button-fill" id="copyLinkBtn">
+                <i class="f7-icons">doc_on_doc</i>
+                <span style="margin-left: 8px;">Copy Link</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Framework7 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/framework7@8/framework7-bundle.min.js"></script>
+  
+  <!-- QRCode.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  
+  <!-- MessagePack Library for compact binary encoding -->
+  <script src="https://cdn.jsdelivr.net/npm/msgpack-lite@0.1.26/dist/msgpack.min.js"></script>
+  
+  <!-- App JS -->
+  <script src="app.js"></script>
+</body>
+</html>
