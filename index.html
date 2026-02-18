@@ -43,6 +43,16 @@
       font-size: 15vh;
       font-weight: bold;
       line-height: 1;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    .beat-indicator .bpm-number:active {
+      transform: scale(0.95);
+      opacity: 0.8;
     }
     #playbackSongTitle {
       font-size: 50px;
@@ -189,7 +199,8 @@
         <!-- Beat Indicator with BPM and Song Title -->
         <div class="beat-indicator" id="beatIndicator">
           <div class="song-title" id="playbackSongTitle">Song Name</div>
-          <div class="bpm-number" id="bpmDisplay">120</div>
+          <!-- Tap the BPM number to set tempo by tapping -->
+          <div class="bpm-number" id="bpmDisplay" contenteditable="false" inputmode="none">120</div>
         </div>
         
         <!-- Playback Controls (Lower half) -->

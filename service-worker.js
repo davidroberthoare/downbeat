@@ -1,7 +1,7 @@
 // Service Worker for PWA with Offline Support
 // Update the version number below to refresh the cache
 
-const CACHE_VERSION = '1.0.1';
+const CACHE_VERSION = '1.0.3';
 const CACHE_NAME = `downbeat-v${CACHE_VERSION}`;
 
 // Assets to cache on install

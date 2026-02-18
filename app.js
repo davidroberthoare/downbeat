@@ -17,6 +17,13 @@ let metronomeAnimation = null;
 let currentBPM = 120; // Current playback BPM (independent from song data)
 let isRestoringState = false; // Flag to prevent saving state during restoration
 
+// Tap tempo tracking
+let tapTimestamps = []; // Store tap timestamps for tap tempo
+const MAX_TAP_INTERVAL = 2000; // Reset taps if gap exceeds 2 seconds
+const TAP_HISTORY_SIZE = 5; // Keep last 5 taps for averaging
+let lastTapTime = 0; // Track last tap to prevent double-firing
+const TAP_DEBOUNCE = 100; // Minimum milliseconds between taps (prevents double-sensing)
+
 // Initialize Framework7 components
 let songEditPopup;
 let showEditPopup;
@@ -669,6 +676,70 @@ function decreaseTempo() {
   }
 }
 
+// Tap tempo - calculate BPM from user taps
+function handleTapTempo(event) {
+  console.log('[handleTapTempo] Function called!', event ? event.type : 'no event');
+  const now = Date.now();
+  
+  // Prevent double-firing from both touch and click events
+  if (now - lastTapTime < TAP_DEBOUNCE) {
+    console.log('[handleTapTempo] Debounced - too soon after last tap');
+    return;
+  }
+  lastTapTime = now;
+  
+  // Reset if too much time has passed since last tap
+  if (tapTimestamps.length > 0 && (now - tapTimestamps[tapTimestamps.length - 1]) > MAX_TAP_INTERVAL) {
+    tapTimestamps = [];
+    console.log('[handleTapTempo] Reset taps due to timeout');
+  }
+  
+  // Add current tap timestamp
+  tapTimestamps.push(now);
+  
+  // Keep only the last TAP_HISTORY_SIZE taps
+  if (tapTimestamps.length > TAP_HISTORY_SIZE) {
+    tapTimestamps.shift();
+  }
+  
+  console.log(`[handleTapTempo] Tap recorded. Total taps: ${tapTimestamps.length}`);
+  
+  // Need at least 2 taps to calculate BPM
+  if (tapTimestamps.length >= 2) {
+    // Calculate intervals between consecutive taps
+    const intervals = [];
+    for (let i = 1; i < tapTimestamps.length; i++) {
+      intervals.push(tapTimestamps[i] - tapTimestamps[i - 1]);
+    }
+    
+    // Calculate average interval
+    const avgInterval = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
+    
+    // Convert interval (ms) to BPM
+    const calculatedBPM = Math.round(60000 / avgInterval);
+    
+    // Clamp BPM to valid range (20-300)
+    const newBPM = Math.max(20, Math.min(300, calculatedBPM));
+    
+    // Update currentBPM and display
+    currentBPM = newBPM;
+    bpmDisplay.textContent = currentBPM;
+    console.log(`[handleTapTempo] Calculated BPM: ${newBPM} (from ${intervals.length} intervals, avg: ${avgInterval.toFixed(2)}ms)`);
+    
+    // Update animation playback rate if metronome is running
+    if (metronomeAnimation) {
+      metronomeAnimation.playbackRate = currentBPM;
+      console.log(`[handleTapTempo] Updated playbackRate to ${currentBPM}`);
+    }
+    
+    // Visual feedback - flash the display
+    beatIndicator.classList.add('flash');
+    setTimeout(() => {
+      beatIndicator.classList.remove('flash');
+    }, 100);
+  }
+}
+
 // Save current tempo to song data
 function saveTempo() {
   if (currentShowIndex === null) return;
@@ -882,8 +953,18 @@ document.addEventListener('DOMContentLoaded', () => {
     closeByBackdropClick: false,
     closeByOutsideClick: false,
     on: {
+      opened: () => {
+        console.log('[playbackSheet] Sheet opened, resetting tap tempo state');
+        // Reset tap tempo state when sheet opens
+        tapTimestamps = [];
+        lastTapTime = 0;
+        console.log('[playbackSheet] Tap tempo state reset');
+      },
       closed: () => {
         stopMetronome();
+        // Reset tap timestamps when closing
+        tapTimestamps = [];
+        lastTapTime = 0;
       }
     }
   });
@@ -999,6 +1080,17 @@ document.addEventListener('DOMContentLoaded', () => {
   tempoUpBtn.addEventListener('click', increaseTempo);
   tempoDownBtn.addEventListener('click', decreaseTempo);
   saveTempoBtn.addEventListener('click', saveTempo);
+  
+  // Tap tempo event listener
+  console.log('[DOMContentLoaded] Setting up tap tempo on bpmDisplay:', bpmDisplay);
+  bpmDisplay.addEventListener('click', handleTapTempo);
+  bpmDisplay.addEventListener('touchend', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    e.stopPropagation(); // Stop event propagation
+    console.log('[bpmDisplay] touchend event fired');
+    handleTapTempo(e);
+  });
+  console.log('[DOMContentLoaded] Tap tempo event listeners added (click + touchend)');
   
   // Load data and restore previous view state
   loadData();
