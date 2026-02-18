@@ -1013,7 +1013,51 @@ document.addEventListener('DOMContentLoaded', () => {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
-      .then(registration => console.log('ServiceWorker registered'))
+      .then(registration => {
+        console.log('ServiceWorker registered');
+        
+        // Check for service worker updates periodically
+        setInterval(() => {
+          registration.update();
+        }, 60000); // Check every 60 seconds
+        
+        // Handle service worker updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New service worker available, notify user
+              const notification = app.toast.create({
+                text: 'New version available! Tap to update.',
+                position: 'center',
+                closeButton: true,
+                closeButtonText: 'Update',
+                closeButtonColor: 'blue',
+                closeTimeout: 10000,
+                on: {
+                  close: () => {
+                    // Tell the new service worker to take over
+                    newWorker.postMessage({ action: 'skipWaiting' });
+                    // Reload to get the new version
+                    window.location.reload();
+                  }
+                }
+              });
+              notification.open();
+            }
+          });
+        });
+      })
       .catch(err => console.log('ServiceWorker registration failed:', err));
+    
+    // Handle service worker controller change
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
   });
 }

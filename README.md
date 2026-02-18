@@ -1,4 +1,4 @@
-# downbeat
+# Downbeat
 A simple metronome for band leaders
 
 ## Overview
@@ -26,6 +26,8 @@ Downbeat is a mobile-first Progressive Web App designed for conductors in an orc
 - **Offline-First**: All data stored locally using browser localStorage
 - **PWA Support**: Install as a standalone app on mobile devices
 - **Mobile-Optimized**: Designed for touch interfaces and small screens
+- **Full Offline Support**: Works completely offline after first load with intelligent caching
+- **Auto-Update**: Notifications when new versions are available
 
 ## Getting Started
 
@@ -71,14 +73,28 @@ Downbeat is a mobile-first Progressive Web App designed for conductors in an orc
 
 ### Structure
 - `index.html` - Main HTML structure
-- `app.js` - Application logic
-- `styles.css` - Styling and layout
+- `app.js` - Application logic and service worker registration
 - `manifest.json` - PWA configuration
-- `service-worker.js` - Service worker (caching disabled for development)
-- `icon-192.svg`, `icon-512.svg` - App icons
+- `service-worker.js` - Service worker for offline caching
+- `img/` - App icons and images
 
 ### Data Storage
 Songs are stored in localStorage under the key `downbeat_songs` as a JSON array.
+
+### Offline Caching
+The app uses a service worker with cache-first strategy for full offline support:
+- All app assets are cached on first load
+- External CDN resources (Framework7, icons, libraries) are cached locally
+- Works completely offline after initial visit
+- Background updates keep cache fresh when online
+
+### Updating the Cache
+To deploy a new version and refresh user caches:
+1. Open `service-worker.js`
+2. Update the `CACHE_VERSION` constant at the top (e.g., '1.0.0' → '1.0.1')
+3. Deploy the updated file
+4. Users will see an update notification automatically
+5. Clicking "Update" will reload the app with the new version
 
 ## Browser Support
 - Modern browsers with localStorage support
