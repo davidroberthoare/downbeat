@@ -33,11 +33,7 @@ Downbeat is a mobile-first Progressive Web App designed for conductors in an orc
 
 ### Running Locally
 1. Clone this repository
-2. Serve the files using any HTTP server:
-   ```bash
-   python3 -m http.server 8000
-   ```
-3. Open http://localhost:8000 in your browser
+2. Serve the files using any HTTP server
 
 ### Installing as PWA
 1. Open the app in a mobile browser (Chrome, Safari, etc.)
@@ -68,6 +64,16 @@ Downbeat is a mobile-first Progressive Web App designed for conductors in an orc
 - **Change Songs**: Use the **⏮** and **⏭** buttons
 - **Pause/Resume**: Tap the center button
 - **Return to Edit**: Tap the **←** button in the top-left
+
+### Sharing
+- In the "Show Edit" popup, there is a "Share Show" option. This creates a URL and/or QR code with the entire show data encoded as urls parameters.
+- Sending this URL to a friend or another browser should open the site and prompt them to import that song data. 
+
+
+## Current Status
+
+⚠️ **Work in Progress** - This is an active hobby project. Expect bugs, missing features, and breaking changes. I will attempt to keep the 'live' branch (hosted at https://downbeat.drhmedia.net/) fully working at all times. It's possible you might have to clear your cache and reset the data (there is a built-in function on the global settings page for that).
+
 
 ## Development
 
@@ -101,9 +107,19 @@ To deploy a new version and refresh user caches:
 - Service Worker support for PWA features
 - Optimized for mobile Safari and Chrome
 
-## License
-See LICENSE file for details.
 
+
+## Contributing
+This is a personal hobby project, but contributions, suggestions, and bug reports are welcome! Feel free to open issues or submit pull requests.
+
+If you find this app useful, especially if you use it in a show, please let us know in the [discussions](https://github.com/davidroberthoare/downbeat/discussions/categories/show-and-tell), or you can sponsor the project here: [https://github.com/sponsors/davidroberthoare](https://github.com/sponsors/davidroberthoare) or here: [https://ko-fi.com/davidhoare](https://ko-fi.com/davidhoare).
+
+## Privacy
+No personal data is collected or shared at any time. All customizations you make (data and images) are stored in your local browser, and never sent to any server.
+
+
+## License
+See LICENSE file for Creative Commons details.
 
 ## Credits
 
