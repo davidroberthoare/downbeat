@@ -46,7 +46,6 @@ let playbackSheet;
 const backToShowsBtn = document.getElementById('backToShowsBtn');
 const mainTitle = document.getElementById('mainTitle');
 const addItemBtn = document.getElementById('addItemBtn');
-const editShowBtn = document.getElementById('editShowBtn');
 const settingsBtn = document.getElementById('settingsBtn');
 const toggleSoundBtn = document.getElementById('toggleSoundBtn');
 const toggleSoundIcon = document.getElementById('toggleSoundIcon');
@@ -357,7 +356,6 @@ function showShowsList() {
   showsListContainer.style.display = 'block';
   songsListContainer.style.display = 'none';
   backToShowsBtn.style.display = 'none';
-  editShowBtn.style.display = 'none';
   mainTitle.textContent = 'Downbeat';
   renderShowsList();
   saveViewState();
@@ -369,7 +367,6 @@ function showSongsList(showIndex) {
   showsListContainer.style.display = 'none';
   songsListContainer.style.display = 'block';
   backToShowsBtn.style.display = 'block';
-  editShowBtn.style.display = 'flex';
   mainTitle.textContent = shows[showIndex].name;
   renderSongsList();
   saveViewState();
@@ -393,7 +390,12 @@ function renderShowsList() {
         <div class="item-content" data-index="${index}" style="cursor: pointer;">
           <div class="item-inner">
             <div class="item-title">${show.name}</div>
-            <div class="item-after">${songCount} song${songCount !== 1 ? 's' : ''}</div>
+            <div class="item-after">
+              <span>${songCount} song${songCount !== 1 ? 's' : ''}</span>
+              <a href="#" class="link icon-only show-edit-btn" data-index="${index}" aria-label="Edit ${show.name}">
+                <i class="f7-icons">pencil_circle_fill</i>
+              </a>
+            </div>
           </div>
         </div>
       `;
@@ -401,10 +403,18 @@ function renderShowsList() {
     });
     
     // Add click handlers
-    showsListUl.querySelectorAll('.item-content').forEach(item => {
+      showsListUl.querySelectorAll('.item-content').forEach(item => {
       item.addEventListener('click', () => {
         const index = parseInt(item.dataset.index);
         showSongsList(index);
+      });
+
+      showsListUl.querySelectorAll('.show-edit-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          editShow(parseInt(button.dataset.index));
+        });
       });
       
       // Long press to edit
@@ -499,7 +509,7 @@ function saveShow() {
   const name = showNameInput.value.trim();
   
   if (!name) {
-    app.dialog.alert('Please enter a show name');
+    app.dialog.alert('Please enter a show name', 'Downbeat');
     return;
   }
   
@@ -530,7 +540,7 @@ function deleteShow() {
   const editIndex = showEditPopup.$el[0].dataset.editIndex;
   
   if (editIndex !== undefined && editIndex !== '') {
-    app.dialog.confirm('Are you sure you want to delete this show and all its songs?', () => {
+    app.dialog.confirm('Are you sure you want to delete this show and all its songs?', 'Downbeat', () => {
       shows.splice(parseInt(editIndex), 1);
       saveData();
       showEditPopup.close();
@@ -573,12 +583,12 @@ function saveSong() {
   const bpm = parseInt(bpmInput.value) || 120;
   
   if (!name) {
-    app.dialog.alert('Please enter a song name');
+    app.dialog.alert('Please enter a song name', 'Downbeat');
     return;
   }
   
   if (bpm < 20 || bpm > 300) {
-    app.dialog.alert('BPM must be between 20 and 300');
+    app.dialog.alert('BPM must be between 20 and 300', 'Downbeat');
     return;
   }
   
@@ -601,7 +611,7 @@ function saveSong() {
 function deleteSong() {
   if (currentShowIndex === null || currentEditSongIndex === null) return;
   
-  app.dialog.confirm('Are you sure you want to delete this song?', () => {
+  app.dialog.confirm('Are you sure you want to delete this song?', 'Downbeat', () => {
     shows[currentShowIndex].songs.splice(currentEditSongIndex, 1);
     saveData();
     renderSongsList();
@@ -904,7 +914,7 @@ function shareShow() {
   const editIndex = showEditPopup.$el[0].dataset.editIndex;
   
   if (editIndex === undefined || editIndex === '') {
-    app.dialog.alert('Please save the show first before sharing.');
+    app.dialog.alert('Please save the show first before sharing.', 'Downbeat');
     return;
   }
   
@@ -979,7 +989,7 @@ function checkForImportedShow() {
     showImportDialog(importedShow);
   } catch (e) {
     console.error('Error importing show:', e);
-    app.dialog.alert('Invalid share link. The data could not be imported.');
+    app.dialog.alert('Invalid share link. The data could not be imported.', 'Downbeat');
   }
 }
 
@@ -1016,7 +1026,7 @@ function showImportDialog(importedShow) {
           let finalName = inputField.value.trim();
           
           if (!finalName) {
-            app.dialog.alert('Please enter a show name');
+            app.dialog.alert('Please enter a show name', 'Downbeat');
             return;
           }
           
@@ -1158,14 +1168,6 @@ document.addEventListener('DOMContentLoaded', () => {
   backToShowsBtn.addEventListener('click', (e) => {
     e.preventDefault();
     showShowsList();
-  });
-  
-  // Edit show button (shows in songs view)
-  editShowBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (currentShowIndex !== null) {
-      editShow(currentShowIndex);
-    }
   });
   
   // Show popup buttons

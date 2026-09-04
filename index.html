@@ -47,6 +47,9 @@
       align-items: center;
       white-space: nowrap;
     }
+    .show-edit-btn {
+      margin-left: 12px;
+    }
     .sheet-modal,
     .sheet-modal-inner {
       background-color: var(--downbeat-background-color);
@@ -166,9 +169,6 @@
               <a href="#" class="link icon-only" id="settingsBtn" aria-label="Settings">
                 <i class="f7-icons">gear_alt_fill</i>
               </a>
-               <a href="#" class="link icon-only" id="editShowBtn" style="display: none;">
-                <i class="f7-icons">pencil_circle_fill</i>
-              </a>
               <a href="#" class="link icon-only" id="addItemBtn">
                 <i class="f7-icons">plus_circle_fill</i>
               </a>
@@ -179,14 +179,19 @@
         <!-- Page content -->
         <div class="page-content">
           <!-- Shows List -->
-          <div id="showsListContainer">
-            <div class="list" id="showsList" style="display: none;">
-              <ul id="showsListUl"></ul>
+            <div id="showsListContainer">
+              <div class="list" id="showsList" style="display: none;">
+                <ul id="showsListUl"></ul>
+              </div>
+              <div class="block block-strong inset" id="showsEmptyState">
+                <p style="text-align: center; opacity: 0.6;">No shows yet. Tap the + button to create a show.</p>
+              </div>
+              <div class="block block-strong inset">
+                <h3>Welcome to Downbeat :)</h3>
+                <p>A simple conductor's metronome for keeping your shows moving.</p>
+                <p>- Use <strong>+</strong> to create a show, then add songs and drag them to reorder them. <br>- Open a show and tap <strong>Start Playback</strong> to begin. <br>- During playback, adjust the tempo with the +/- buttons or by tapping. <br>- Move between songs using the navigation controls.</p>
+              </div>
             </div>
-            <div class="block block-strong inset" id="showsEmptyState">
-              <p style="text-align: center; opacity: 0.6;">No shows yet. Tap the + button to create a show.</p>
-            </div>
-          </div>
           
           <!-- Songs List (for selected show) -->
           <div id="songsListContainer" style="display: none;">
@@ -204,6 +209,7 @@
             <div class="block block-strong inset" id="songsEmptyState">
               <p style="text-align: center; opacity: 0.6;">No songs yet. Tap the + button to add a song.</p>
             </div>
+
           </div>
         </div>
       </div>
