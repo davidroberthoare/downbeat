@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="theme-color" content="#000000">
   <title>Downbeat</title>
 
@@ -23,8 +23,39 @@
   <!-- Manifest -->
   <link rel="manifest" href="manifest.json">
   
-  <style>
-    /* Minimal custom styles for beat indicator and playback display */
+   <style>
+     /* Minimal custom styles for beat indicator and playback display */
+    html,
+    body,
+    #app,
+    .view,
+    .page {
+      background-color: var(--downbeat-background-color);
+      color: var(--downbeat-text-color);
+    }
+    .navbar,
+    .toolbar {
+      --f7-bars-bg-color: var(--downbeat-background-color);
+      --f7-bars-text-color: var(--downbeat-text-color);
+    }
+    #playbackSheet .toolbar-inner,
+    #playbackSheet .toolbar .right {
+      flex-wrap: nowrap;
+    }
+    #playbackSheet .toolbar .right {
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+    .sheet-modal,
+    .sheet-modal-inner {
+      background-color: var(--downbeat-background-color);
+      color: var(--downbeat-text-color);
+    }
+    .beat-indicator.flash {
+      background-color: var(--downbeat-flash-color);
+      box-shadow: 0 0 40px var(--downbeat-flash-color);
+    }
     .beat-indicator {
       width: 100%;
       height: 50vh;
@@ -35,9 +66,7 @@
       gap: 20px;
     }
     .beat-indicator.flash {
-      background: var(--f7-theme-color);
       opacity: 1;
-      box-shadow: 0 0 40px var(--f7-theme-color);
     }
     .beat-indicator .bpm-number {
       font-size: 15vh;
@@ -132,9 +161,12 @@
                 <span>Shows</span>
               </a>
             </div>
-            <div class="title" id="mainTitle">Downbeat ~ Conductor Metronome</div>
-            <div class="right">
-              <a href="#" class="link icon-only" id="editShowBtn" style="display: none;">
+            <div class="title" id="mainTitle">Downbeat</div>
+             <div class="right">
+              <a href="#" class="link icon-only" id="settingsBtn" aria-label="Settings">
+                <i class="f7-icons">gear_alt_fill</i>
+              </a>
+               <a href="#" class="link icon-only" id="editShowBtn" style="display: none;">
                 <i class="f7-icons">pencil_circle_fill</i>
               </a>
               <a href="#" class="link icon-only" id="addItemBtn">
@@ -188,8 +220,11 @@
             </a>
           </div>
           <!-- <div class="title" id="playbackSongName">Song Name</div> -->
-          <div class="right">
-            <a href="#" class="link icon-only" id="saveTempoBtn">
+           <div class="right">
+            <a href="#" class="link icon-only" id="toggleSoundBtn" aria-label="Toggle sound">
+              <i class="f7-icons" id="toggleSoundIcon">speaker_3_fill</i>
+            </a>
+             <a href="#" class="link icon-only" id="saveTempoBtn">
               <i class="f7-icons">floppy_disk</i>
             </a>
           </div>
@@ -231,6 +266,75 @@
           <!-- Next Song Footer -->
           <div style="text-align: right">
             <div id="upcomingSongTitle">—</div>
+          </div>
+        </div>
+     </div>
+    </div>
+
+    <!-- Settings Popup -->
+    <div class="popup" id="settingsPopup">
+      <div class="view">
+        <div class="page">
+          <div class="navbar">
+            <div class="navbar-bg"></div>
+            <div class="navbar-inner">
+              <div class="left">
+                <a href="#" class="link popup-close">Close</a>
+              </div>
+              <div class="title">Settings</div>
+            </div>
+          </div>
+          <div class="page-content">
+            <div class="list">
+              <ul>
+                <li class="item-content item-input">
+                  <div class="item-inner">
+                    <div class="item-title item-label">Background color</div>
+                    <div class="item-input-wrap">
+                      <input type="color" id="backgroundColorInput" aria-label="Background color">
+                    </div>
+                  </div>
+                </li>
+                <li class="item-content item-input">
+                  <div class="item-inner">
+                    <div class="item-title item-label">Text color</div>
+                    <div class="item-input-wrap">
+                      <input type="color" id="textColorInput" aria-label="Text color">
+                    </div>
+                  </div>
+                </li>
+                <li class="item-content item-input">
+                  <div class="item-inner">
+                    <div class="item-title item-label">Flash color</div>
+                    <div class="item-input-wrap">
+                      <input type="color" id="flashColorInput" aria-label="Flash color">
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <label class="item-checkbox item-content">
+                    <input type="checkbox" id="soundEnabledInput">
+                    <i class="icon icon-checkbox"></i>
+                    <div class="item-inner">
+                      <div class="item-title">Beep on each beat</div>
+                    </div>
+                  </label>
+                </li>
+                <li class="item-content item-input">
+                  <div class="item-inner">
+                    <div class="item-title item-label">Sound</div>
+                    <div class="item-input-wrap input-dropdown-wrap">
+                      <select id="soundTypeInput">
+                        <option value="tick">Tick</option>
+                        <option value="click">Click</option>
+                        <option value="beep">Beep</option>
+                        <option value="woodblock">Woodblock</option>
+                      </select>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>

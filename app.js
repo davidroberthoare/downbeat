@@ -1,11 +1,22 @@
+const SETTINGS_STORAGE_KEY = 'downbeat_settings';
+const defaultSettings = {
+  backgroundColor: '#000000',
+  textColor: '#ffffff',
+  flashColor: '#c4defa',
+  soundEnabled: false,
+  soundType: 'tick'
+};
+let settings = { ...defaultSettings };
+let audioContext = null;
+let soundInterval = null;
+let soundStartFrame = null;
+
 // Initialize Framework7 App
 const app = new Framework7({
   el: '#app',
   theme: 'ios',
   darkMode: true,
 });
-
-const flashColor = 'rgb(196, 222, 250)'; // Default flash color for the beat indicator
 
 // Data storage
 let shows = [];
@@ -28,6 +39,7 @@ const TAP_DEBOUNCE = 100; // Minimum milliseconds between taps (prevents double-
 let songEditPopup;
 let showEditPopup;
 let sharePopup;
+let settingsPopup;
 let playbackSheet;
 
 // DOM Elements - Navigation
@@ -35,6 +47,9 @@ const backToShowsBtn = document.getElementById('backToShowsBtn');
 const mainTitle = document.getElementById('mainTitle');
 const addItemBtn = document.getElementById('addItemBtn');
 const editShowBtn = document.getElementById('editShowBtn');
+const settingsBtn = document.getElementById('settingsBtn');
+const toggleSoundBtn = document.getElementById('toggleSoundBtn');
+const toggleSoundIcon = document.getElementById('toggleSoundIcon');
 
 // Shows UI
 const showsListContainer = document.getElementById('showsListContainer');
@@ -74,6 +89,13 @@ const tempoDownBtn = document.getElementById('tempoDownBtn');
 const saveTempoBtn = document.getElementById('saveTempoBtn');
 const upcomingSongTitle = document.getElementById('upcomingSongTitle');
 
+// Settings elements
+const backgroundColorInput = document.getElementById('backgroundColorInput');
+const textColorInput = document.getElementById('textColorInput');
+const flashColorInput = document.getElementById('flashColorInput');
+const soundEnabledInput = document.getElementById('soundEnabledInput');
+const soundTypeInput = document.getElementById('soundTypeInput');
+
 // Custom function to resize song title text to fit in container
 function resizeSongTitle() {
   const maxSize = 50;
@@ -86,6 +108,117 @@ function resizeSongTitle() {
   while (playbackSongTitle.scrollHeight > playbackSongTitle.clientHeight && currentSize > minSize) {
     currentSize -= 1;
     playbackSongTitle.style.fontSize = currentSize + 'px';
+  }
+}
+
+function loadSettings() {
+  try {
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (stored) settings = { ...defaultSettings, ...JSON.parse(stored) };
+  } catch (e) {
+    console.error('Error loading settings:', e);
+  }
+  applySettings();
+}
+
+function saveSettings() {
+  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+}
+
+function applySettings() {
+  document.documentElement.style.setProperty('--downbeat-background-color', settings.backgroundColor);
+  document.documentElement.style.setProperty('--downbeat-text-color', settings.textColor);
+  document.documentElement.style.setProperty('--downbeat-flash-color', settings.flashColor);
+  document.documentElement.style.setProperty('--f7-page-bg-color', settings.backgroundColor);
+  document.documentElement.style.setProperty('--f7-sheet-bg-color', settings.backgroundColor);
+  document.documentElement.style.setProperty('--f7-text-color', settings.textColor);
+  document.documentElement.style.setProperty('--f7-bars-bg-color', settings.backgroundColor);
+  document.documentElement.style.setProperty('--f7-bars-text-color', settings.textColor);
+  document.documentElement.style.setProperty('--f7-list-item-text-color', settings.textColor);
+  document.documentElement.style.setProperty('--f7-list-item-subtitle-text-color', settings.textColor);
+  backgroundColorInput.value = settings.backgroundColor;
+  textColorInput.value = settings.textColor;
+  flashColorInput.value = settings.flashColor;
+  soundEnabledInput.checked = settings.soundEnabled;
+  soundTypeInput.value = settings.soundType;
+  toggleSoundIcon.textContent = settings.soundEnabled ? 'speaker_3_fill' : 'speaker_slash_fill';
+  toggleSoundBtn.setAttribute('aria-label', settings.soundEnabled ? 'Turn sound off' : 'Turn sound on');
+}
+
+function updateSettings(changes) {
+  settings = { ...settings, ...changes };
+  saveSettings();
+  applySettings();
+  if (settings.soundEnabled && isPlaying) startSoundSchedule();
+  else if (!settings.soundEnabled) stopSoundSchedule();
+}
+
+function getAudioContext() {
+  if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioContext.state === 'suspended') audioContext.resume();
+  return audioContext;
+}
+
+function playBeatSound() {
+  if (!settings.soundEnabled || (!window.AudioContext && !window.webkitAudioContext)) return;
+  const context = getAudioContext();
+  if (settings.soundType === 'click') {
+    const duration = 0.018;
+    const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * duration), context.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    const now = context.currentTime;
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    source.buffer = buffer;
+    source.connect(gain).connect(context.destination);
+    source.start(now);
+    source.stop(now + duration);
+    return;
+  }
+
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  const now = context.currentTime;
+  const profiles = {
+    tick: { frequency: 1800, endFrequency: 900, duration: 0.035, volume: 0.18 },
+    beep: { frequency: 660, endFrequency: 660, duration: 0.12, volume: 0.16 },
+    woodblock: { frequency: 320, endFrequency: 180, duration: 0.08, volume: 0.25 }
+  };
+  const profile = profiles[settings.soundType] || profiles.tick;
+  oscillator.type = settings.soundType === 'beep' ? 'sine' : 'square';
+  oscillator.frequency.setValueAtTime(profile.frequency, now);
+  oscillator.frequency.exponentialRampToValueAtTime(profile.endFrequency, now + profile.duration);
+  gain.gain.setValueAtTime(profile.volume, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + profile.duration);
+  oscillator.connect(gain).connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + profile.duration);
+}
+
+function startSoundSchedule() {
+  stopSoundSchedule();
+  if (!settings.soundEnabled || !isPlaying) return;
+  // Let the newly started visual animation reach its first paint before the sound.
+  soundStartFrame = requestAnimationFrame(() => {
+    soundStartFrame = null;
+    if (!settings.soundEnabled || !isPlaying) return;
+    playBeatSound();
+    soundInterval = setInterval(playBeatSound, 60000 / currentBPM);
+  });
+}
+
+function stopSoundSchedule() {
+  if (soundStartFrame !== null) {
+    cancelAnimationFrame(soundStartFrame);
+    soundStartFrame = null;
+  }
+  if (soundInterval) {
+    clearInterval(soundInterval);
+    soundInterval = null;
   }
 }
 
@@ -225,7 +358,7 @@ function showShowsList() {
   songsListContainer.style.display = 'none';
   backToShowsBtn.style.display = 'none';
   editShowBtn.style.display = 'none';
-  mainTitle.textContent = 'Downbeat ~ Conductor Metronome';
+  mainTitle.textContent = 'Downbeat';
   renderShowsList();
   saveViewState();
 }
@@ -550,8 +683,8 @@ function startMetronome() {
     // Create animation with base duration of 60000ms (1 minute = 1 BPM)
     // Flash happens in first ~100ms (0.167% of duration at 1 BPM)
     const keyframes = [
-      { backgroundColor: flashColor, offset: 0 },
-      { backgroundColor: flashColor, offset: 0.1 },
+      { backgroundColor: settings.flashColor, offset: 0 },
+      { backgroundColor: settings.flashColor, offset: 0.1 },
       { backgroundColor: 'transparent', offset: 0.3 },
       { backgroundColor: 'transparent', offset: 1 }
     ];
@@ -564,6 +697,7 @@ function startMetronome() {
     
     // Set playback rate to match BPM (e.g., 120 BPM = 120x speed)
     metronomeAnimation.playbackRate = currentBPM;
+    startSoundSchedule();
     // console.log(`[startMetronome] Animation started with playbackRate: ${currentBPM}`);
   } else {
     // console.log('[startMetronome] Already playing, ignoring');
@@ -581,7 +715,7 @@ function stopMetronome() {
     if (metronomeAnimation) {
       // console.log('[stopMetronome] Canceling animation');
       metronomeAnimation.cancel();
-      metronomeAnimation = null;
+    metronomeAnimation = null;
     }
     
     // Reset indicator to default state
@@ -590,6 +724,7 @@ function stopMetronome() {
   } else {
     // console.log('[stopMetronome] Already stopped, ignoring');
   }
+  stopSoundSchedule();
 }
 
 // Toggle play/pause
@@ -654,6 +789,7 @@ function increaseTempo() {
       metronomeAnimation.playbackRate = currentBPM;
       console.log(`[increaseTempo] Updated playbackRate to ${currentBPM}`);
     }
+    if (isPlaying && settings.soundEnabled) startSoundSchedule();
   } else {
     console.log('[increaseTempo] Already at max BPM (300)');
   }
@@ -671,6 +807,7 @@ function decreaseTempo() {
       metronomeAnimation.playbackRate = currentBPM;
       console.log(`[decreaseTempo] Updated playbackRate to ${currentBPM}`);
     }
+    if (isPlaying && settings.soundEnabled) startSoundSchedule();
   } else {
     console.log('[decreaseTempo] Already at min BPM (20)');
   }
@@ -946,6 +1083,10 @@ document.addEventListener('DOMContentLoaded', () => {
   sharePopup = app.popup.create({
     el: '#sharePopup',
   });
+
+  settingsPopup = app.popup.create({
+    el: '#settingsPopup',
+  });
   
   playbackSheet = app.sheet.create({
     el: '#playbackSheet',
@@ -988,6 +1129,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   // Event Listeners - Add button (context-aware)
+  settingsBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    settingsPopup.open();
+  });
+
+  toggleSoundBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    updateSettings({ soundEnabled: !settings.soundEnabled });
+  });
+
+  backgroundColorInput.addEventListener('input', (e) => updateSettings({ backgroundColor: e.target.value }));
+  textColorInput.addEventListener('input', (e) => updateSettings({ textColor: e.target.value }));
+  flashColorInput.addEventListener('input', (e) => updateSettings({ flashColor: e.target.value }));
+  soundEnabledInput.addEventListener('change', (e) => updateSettings({ soundEnabled: e.target.checked }));
+  soundTypeInput.addEventListener('change', (e) => updateSettings({ soundType: e.target.value }));
+
   addItemBtn.addEventListener('click', (e) => {
     e.preventDefault();
     if (currentShowIndex === null) {
@@ -1093,6 +1250,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('[DOMContentLoaded] Tap tempo event listeners added (click + touchend)');
   
   // Load data and restore previous view state
+  loadSettings();
   loadData();
   
   // Check for imported show data in URL

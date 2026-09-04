@@ -1,8 +1,10 @@
 // Service Worker for PWA with Offline Support
 // Update the version number below to refresh the cache
 
-const CACHE_VERSION = '1.0.3';
+const CACHE_VERSION = '1.0.6';
 const CACHE_NAME = `downbeat-v${CACHE_VERSION}`;
+// Set to true during development to bypass and remove all app caches.
+const DISABLE_CACHING = false;
 
 // Assets to cache on install
 const ASSETS_TO_CACHE = [
@@ -29,11 +31,13 @@ self.addEventListener('install', (event) => {
   console.log(`Service Worker: Installing (${CACHE_NAME})...`);
   
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Service Worker: Caching app assets');
-        return cache.addAll(ASSETS_TO_CACHE);
-      })
+    (DISABLE_CACHING
+      ? Promise.resolve()
+      : caches.open(CACHE_NAME)
+        .then((cache) => {
+          console.log('Service Worker: Caching app assets');
+          return cache.addAll(ASSETS_TO_CACHE);
+        }))
       .then(() => {
         console.log('Service Worker: All assets cached successfully');
         return self.skipWaiting();
@@ -52,7 +56,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
+          if (DISABLE_CACHING || cache !== CACHE_NAME) {
             console.log(`Service Worker: Deleting old cache: ${cache}`);
             return caches.delete(cache);
           }
@@ -67,6 +71,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - cache-first strategy for offline support
 self.addEventListener('fetch', (event) => {
+  if (DISABLE_CACHING) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((cachedResponse) => {
