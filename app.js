@@ -1215,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // BPM input - save on Enter key
   bpmInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' || e.keyCode === 13) {
       e.preventDefault();
       saveSong();
     }
