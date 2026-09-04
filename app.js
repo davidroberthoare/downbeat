@@ -256,8 +256,8 @@ function loadData() {
     if (shows.length === 0) {
       shows = [{
         name: 'My Show',
-        songs: [{ name: 'My First Song', bpm: 120 }]
-      }];
+        songs: [{ name: 'My First Song', bpm: 120 },{ name: 'The Next Song', bpm: 80 }]
+      },];
       saveData();
     }
   }
